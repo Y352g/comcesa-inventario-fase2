@@ -1,0 +1,34 @@
+
+name: COMCESA Fase 2 - CI
+
+on:
+  push:
+    branches:
+      - DEV
+  pull_request:
+    branches:
+      - DEV
+      - QA
+      - PROD
+
+jobs:
+  build:
+    name: Build y validacion
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Validar sintaxis JavaScript
+        run: |
+          find src scripts -type f -name "*.js" -exec node --check {} \;
