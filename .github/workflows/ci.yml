@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - DEV
+      - feature/pruebas-unitarias
+
   pull_request:
     branches:
       - DEV
@@ -31,4 +33,7 @@ jobs:
 
       - name: Validar sintaxis JavaScript
         run: |
-          find src scripts -type f -name "*.js" -exec node --check {} \;
+          find src scripts tests -type f -name "*.js" -exec node --check {} \;
+
+      - name: Ejecutar pruebas unitarias
+        run: node --test tests/backend/unit/*.test.js
