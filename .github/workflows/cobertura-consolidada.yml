@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - feature/cobertura-consolidada
+  pull_request:
+    branches:
+      -DEV
   workflow_dispatch:
 
 jobs:
