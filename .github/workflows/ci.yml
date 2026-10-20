@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - DEV
-      - feature/pruebas-unitarias
+      - 'feature/**'
 
   pull_request:
     branches:
@@ -39,4 +39,4 @@ jobs:
         env:
           SESSION_SECRET: "clave-ficticia-exclusiva-para-pruebas-unitarias-2026"
           POSTGRES_PASSWORD: "password-ficticio-para-pruebas"
-        run: node --test tests/backend/unit/*.test.js
+        run: node --test tests/backend/unit/*.test.js tests/frontend/*.test.js
