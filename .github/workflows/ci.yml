@@ -25,7 +25,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
 
       - name: Instalar dependencias
@@ -35,8 +35,13 @@ jobs:
         run: |
           find src scripts tests -type f -name "*.js" -exec node --check {} \;
 
-      - name: Ejecutar pruebas unitarias
+      - name: Ejecutar pruebas unitarias y medir cobertura
         env:
           SESSION_SECRET: "clave-ficticia-exclusiva-para-pruebas-unitarias-2026"
           POSTGRES_PASSWORD: "password-ficticio-para-pruebas"
-        run: node --test tests/backend/unit/*.test.js tests/frontend/*.test.js
+        run: |
+          node --test \
+            --experimental-test-coverage \
+            --test-coverage-include='src/**/*.js' \
+            tests/backend/unit/*.test.js \
+            tests/frontend/*.test.js
