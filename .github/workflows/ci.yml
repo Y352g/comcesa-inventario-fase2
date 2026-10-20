@@ -40,6 +40,8 @@ jobs:
           SESSION_SECRET: "clave-ficticia-exclusiva-para-pruebas-unitarias-2026"
           POSTGRES_PASSWORD: "password-ficticio-para-pruebas"
         run: |
-          node --test --experimental-test-coverage \
+          node --test \
+            --experimental-test-coverage \
+            --test-coverage-include='src/**/*.js' \
             tests/backend/unit/*.test.js \
             tests/frontend/*.test.js
