@@ -1,0 +1,579 @@
+{
+  "info": {
+    "_postman_id": "fcae1fa2-ece5-4174-b29c-6db763118915",
+    "name": "COMCESA - Pruebas API Fase 2",
+    "description": "Colección de pruebas automatizadas de API del sistema COMCESA. Incluye validaciones de autenticación, disponibilidad de servicios, consulta de inventario, filtros y control de acceso, correspondientes al entregable E11 de la Fase 2.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59075474",
+    "_collection_link": "https://go.postman.co/collection/59075474-fcae1fa2-ece5-4174-b29c-6db763118915?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "API-01: Verificar estado del servidor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-01: responde con estado HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-01: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-01: contiene los campos requeridos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.all.keys(\"status\", \"service\");\r\n});\r\n\r\npm.test(\"API-01: confirma el estado correcto del servicio\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.status).to.eql(\"ok\");\r\n    pm.expect(respuesta.service).to.eql(\"comcesa-backend\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-02: Verificar disponibilidad de PostgreSQL y Redis.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-02: responde con estado HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-02: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-02: contiene el campo status\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta).to.have.property(\"status\");\r\n});\r\n\r\npm.test(\"API-02: confirma disponibilidad de PostgreSQL y Redis\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta.status).to.eql(\"ready\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/ready",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "ready"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-03: Rechazar acceso al inventario sin autenticación.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-03: rechaza el acceso con HTTP 401\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"API-03: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-03: devuelve el código de error UNAUTHENTICATED\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"error\");\r\n    pm.expect(respuesta.error).to.eql(\"UNAUTHENTICATED\");\r\n});\r\n\r\npm.test(\"API-03: informa que la sesión no es válida\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"message\");\r\n    pm.expect(respuesta.message).to.eql(\r\n        \"La sesion no es valida o ha expirado\"\r\n    );\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-04: Verificar inicio de sesión válido.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-04: inicio de sesión exitoso con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-04: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-04: contiene los datos del usuario autenticado\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"user\");\r\n    pm.expect(respuesta.user).to.have.property(\"email\");\r\n    pm.expect(respuesta.user).to.have.property(\"role\");\r\n});\r\n\r\npm.test(\"API-04: confirma el rol de administrador\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.user.role).to.eql(\"admin\");\r\n});\r\n\r\npm.test(\"API-04: genera una cookie de sesión\", function () {\r\n    const cookies = pm.response.headers.get(\"Set-Cookie\");\r\n\r\n    pm.expect(cookies).to.be.a(\"string\");\r\n    pm.expect(cookies).to.include(\"comcesa_session=\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{apiEmail}}\",\n  \"password\": \"{{apiPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-05: Rechazar filtros inválidos del inventario.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-05: rechaza filtros inválidos con HTTP 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"API-05: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-05: devuelve el código INVALID_FILTERS\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.error).to.eql(\"INVALID_FILTERS\");\r\n});\r\n\r\npm.test(\"API-05: informa que los filtros no son válidos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.message).to.eql(\"Los filtros no son validos\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?limit=150",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "150"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-06: Consultar inventario con filtros válidos.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-06: consulta el inventario con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-06: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-06: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-06: devuelve como máximo 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-06: contiene los campos principales del inventario\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(0);\r\n\r\n    respuesta.items.forEach(function (producto) {\r\n        pm.expect(producto).to.have.all.keys(\r\n            \"article\",\r\n            \"description\",\r\n            \"line\",\r\n            \"unit\",\r\n            \"warehouse\",\r\n            \"status\",\r\n            \"warehouse_name\",\r\n            \"stock\"\r\n        );\r\n    });\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?page=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-07: Verificar filtro de inventario por bodega.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-07: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-07: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-07: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-07: respeta el límite de 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-07: todos los productos pertenecen a la bodega 1\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(0);\r\n\r\n    respuesta.items.forEach(function (producto) {\r\n        pm.expect(Number(producto.warehouse)).to.eql(1);\r\n    });\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?warehouse=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "warehouse",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-08: Verificar búsqueda de productos por descripción.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-08: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-08: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-08: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-08: respeta el límite de 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-08: los productos coinciden con la búsqueda SOCKET\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(0);\r\n\r\n    respuesta.items.forEach(function (producto) {\r\n        const descripcion = String(producto.description || \"\").toUpperCase();\r\n\r\n        pm.expect(descripcion).to.include(\"SOCKET\");\r\n    });\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?search=SOCKET&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "SOCKET"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-09: Verificar ordenamiento descendente del inventario.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-09: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-09: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-09: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-09: respeta el límite de 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-09: ordena los artículos de forma descendente\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(1);\r\n\r\n    const articulos = respuesta.items.map(function (producto) {\r\n        return String(producto.article);\r\n    });\r\n\r\n    for (let i = 1; i < articulos.length; i++) {\r\n        pm.expect(\r\n            articulos[i - 1] >= articulos[i],\r\n            \"Orden incorrecto entre \" +\r\n            articulos[i - 1] + \" y \" + articulos[i]\r\n        ).to.be.true;\r\n    }\r\n});\r\n\r\nconst datos = pm.response.json();\r\n\r\nconsole.log(\"API-09: orden de artículos devueltos\");\r\n\r\ndatos.items.forEach(function (producto, indice) {\r\n    console.log((indice + 1) + \". \" + producto.article);\r\n});\r\n\r\n\r\nconst respuestaOrden = pm.response.json();\r\n\r\nconsole.log(\r\n    \"Dirección solicitada:\",\r\n    pm.request.url.query.get(\"direction\")\r\n);\r\n\r\nconsole.log(\r\n    \"Artículos recibidos:\",\r\n    respuestaOrden.items.map(producto => producto.article)\r\n);\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?sort=article&direction=desc&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "article"
+            },
+            {
+              "key": "direction",
+              "value": "desc"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-10: Verificar ordenamiento ascendente del inventario.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"API-10: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-10: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-10: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-10: respeta el límite de 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-10: ordena los artículos de forma ascendente\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(0);\r\n\r\n    const articulos = respuesta.items.map(function (producto) {\r\n        return String(producto.article);\r\n    });\r\n\r\n    for (let i = 1; i < articulos.length; i++) {\r\n        pm.expect(\r\n            articulos[i - 1] <= articulos[i],\r\n            \"Orden incorrecto entre \" +\r\n            articulos[i - 1] + \" y \" + articulos[i]\r\n        ).to.be.true;\r\n    }\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?sort=article&direction=asc&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "sort",
+              "value": "article"
+            },
+            {
+              "key": "direction",
+              "value": "asc"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-11: Verificar paginación del inventario.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"API-11: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-11: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-11: contiene los campos de paginación\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.all.keys(\r\n        \"items\",\r\n        \"page\",\r\n        \"limit\",\r\n        \"total\",\r\n        \"totalPages\"\r\n    );\r\n});\r\n\r\npm.test(\"API-11: devuelve la página 2\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.page).to.eql(2);\r\n});\r\n\r\npm.test(\"API-11: respeta el límite de 5 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.limit).to.eql(5);\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n    pm.expect(respuesta.items.length).to.be.at.most(5);\r\n});\r\n\r\npm.test(\"API-11: calcula correctamente el total de páginas\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.total).to.be.a(\"number\");\r\n    pm.expect(respuesta.totalPages).to.eql(\r\n        Math.ceil(respuesta.total / respuesta.limit)\r\n    );\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?page=2&limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "2"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-12: Rechazar número de página inválido.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"API-12: rechaza la página inválida con HTTP 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"API-12: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-12: devuelve el código INVALID_FILTERS\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"error\");\r\n    pm.expect(respuesta.error).to.eql(\"INVALID_FILTERS\");\r\n});\r\n\r\npm.test(\"API-12: informa que los filtros no son válidos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"message\");\r\n    pm.expect(respuesta.message).to.eql(\"Los filtros no son validos\");\r\n});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?page=0&limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-13: Rechazar límite de productos inválido.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-13: rechaza el límite inválido con HTTP 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"API-13: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-13: devuelve el código INVALID_FILTERS\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta.error).to.eql(\"INVALID_FILTERS\");\r\n});\r\n\r\npm.test(\"API-13: informa que los filtros no son válidos\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta.message).to.eql(\"Los filtros no son validos\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/inventory?limit=0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "inventory"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-14: Rechazar inicio de sesión con contraseña vacía.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-14: rechaza contraseña vacía con HTTP 400\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"API-14: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-14: devuelve el código INVALID_CREDENTIALS\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta.error).to.eql(\"INVALID_CREDENTIALS\");\r\n});\r\n\r\npm.test(\"API-14: informa que las credenciales son inválidas\", function () {\r\n    const respuesta = pm.response.json();\r\n    pm.expect(respuesta.message).to.eql(\"Credenciales invalidas\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\r\n{\r\n  \"email\": \"usuario@comcesa.net\",\r\n  \"password\": \"\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API-15: Verificar sesión del usuario autenticado.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "\r\npm.test(\"API-15: consulta la sesión con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-15: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-15: contiene los datos del usuario\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"user\");\r\n    pm.expect(respuesta.user).to.be.an(\"object\");\r\n});\r\n\r\npm.test(\"API-15: devuelve un correo electrónico\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.user.email).to.be.a(\"string\");\r\n    pm.expect(respuesta.user.email).to.include(\"@\");\r\n});\r\n\r\npm.test(\"API-15: confirma el rol del usuario\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.user.role).to.eql(\"admin\");\r\n});\r\n"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    }
+  ]
+}
