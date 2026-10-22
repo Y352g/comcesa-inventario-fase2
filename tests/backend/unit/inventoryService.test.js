@@ -134,7 +134,7 @@ test('PI-11: ordena por artículo de forma predeterminada', async () => {
 
   await findInventory(filters());
 
-  assert.match(queries[1].sql, /ORDER BY i\.cve_art ASC/);
+  assert.match(queries[1].sql, /ORDER BY i\.cve_art COLLATE "C" ASC/);
 });
 
 test('PI-12: permite ordenar por existencia descendente', async () => {
@@ -150,7 +150,7 @@ test('PI-13: utiliza orden seguro ante un campo desconocido', async () => {
 
   await findInventory(filters({ sort: 'campo_invalido' }));
 
-  assert.match(queries[1].sql, /ORDER BY i\.cve_art ASC/);
+  assert.match(queries[1].sql, /ORDER BY i\.cve_art COLLATE "C" ASC/);
 });
 
 test('PI-14: calcula correctamente el desplazamiento', async () => {
