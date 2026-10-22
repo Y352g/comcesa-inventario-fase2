@@ -295,14 +295,14 @@
       "response": []
     },
     {
-      "name": "API-09: Verificar ordenamiento descendente del inventario.",
+      "name": "API-09: Verificar búsqueda de productos sin coincidencias.",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "\r\npm.test(\"API-09: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-09: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-09: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-09: respeta el límite de 10 productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.at.most(10);\r\n});\r\n\r\npm.test(\"API-09: ordena los artículos de forma descendente\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items.length).to.be.greaterThan(1);\r\n\r\n    const articulos = respuesta.items.map(function (producto) {\r\n        return String(producto.article);\r\n    });\r\n\r\n    for (let i = 1; i < articulos.length; i++) {\r\n        pm.expect(\r\n            articulos[i - 1] >= articulos[i],\r\n            \"Orden incorrecto entre \" +\r\n            articulos[i - 1] + \" y \" + articulos[i]\r\n        ).to.be.true;\r\n    }\r\n});\r\n\r\nconst datos = pm.response.json();\r\n\r\nconsole.log(\"API-09: orden de artículos devueltos\");\r\n\r\ndatos.items.forEach(function (producto, indice) {\r\n    console.log((indice + 1) + \". \" + producto.article);\r\n});\r\n\r\n\r\nconst respuestaOrden = pm.response.json();\r\n\r\nconsole.log(\r\n    \"Dirección solicitada:\",\r\n    pm.request.url.query.get(\"direction\")\r\n);\r\n\r\nconsole.log(\r\n    \"Artículos recibidos:\",\r\n    respuestaOrden.items.map(producto => producto.article)\r\n);\r\n"
+              "\r\npm.test(\"API-09: responde con HTTP 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"API-09: devuelve una respuesta JSON\", function () {\r\n    pm.response.to.be.json;\r\n});\r\n\r\npm.test(\"API-09: contiene una lista de productos\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta).to.have.property(\"items\");\r\n    pm.expect(respuesta.items).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"API-09: devuelve una lista vacía cuando no hay coincidencias\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.items).to.have.lengthOf(0);\r\n});\r\n\r\npm.test(\"API-09: informa correctamente que no existen resultados\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.total).to.eql(0);\r\n    pm.expect(respuesta.totalPages).to.eql(0);\r\n});\r\n\r\npm.test(\"API-09: conserva los parámetros de paginación\", function () {\r\n    const respuesta = pm.response.json();\r\n\r\n    pm.expect(respuesta.page).to.eql(1);\r\n    pm.expect(respuesta.limit).to.eql(10);\r\n});\r\n"
             ]
           }
         }
@@ -311,7 +311,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/inventory?sort=article&direction=desc&limit=10",
+          "raw": "{{baseUrl}}/api/v1/inventory?limit=10&search=PRODUCTO_INEXISTENTE_XYZ987654",
           "host": [
             "{{baseUrl}}"
           ],
@@ -322,16 +322,12 @@
           ],
           "query": [
             {
-              "key": "sort",
-              "value": "article"
-            },
-            {
-              "key": "direction",
-              "value": "desc"
-            },
-            {
               "key": "limit",
               "value": "10"
+            },
+            {
+              "key": "search",
+              "value": "PRODUCTO_INEXISTENTE_XYZ987654"
             }
           ]
         }
