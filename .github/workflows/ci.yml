@@ -85,3 +85,20 @@ jobs:
 
       - name: Construir imagen Docker
         run: docker build -f docker/backend/Dockerfile -t comcesa-inventario:${{ github.sha }} .
+       
+      - name: Instalar Newman
+        run: npm install --no-save newman@6.2.3
+
+      - name: Ejecutar pruebas API con Newman
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/PROD' }}
+        env:
+          COMCESA_API_EMAIL: ${{ secrets.COMCESA_API_EMAIL }}
+          COMCESA_API_PASSWORD: ${{ secrets.COMCESA_API_PASSWORD }}
+          COMCESA_BASE_URL: https://comcesa-inventario.onrender.com
+        shell: bash
+        run: |
+          newman run postman/COMCESA_Postman_Newman_sin_credenciales.json \
+            --env-var "baseUrl=$COMCESA_BASE_URL" \
+            --env-var "apiEmail=$COMCESA_API_EMAIL" \
+            --env-var "apiPassword=$COMCESA_API_PASSWORD"
+
