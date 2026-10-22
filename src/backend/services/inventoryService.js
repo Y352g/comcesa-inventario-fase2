@@ -18,7 +18,8 @@ function buildOrderBy(sort, direction) {
     case 'stock':
       return `m.exist ${direction === 'asc' ? 'ASC' : 'DESC'}, i.cve_art COLLATE "C" ASC, m.cve_alm ASC`;
     default:
-      return 'i.cve_art COLLATE "C" ASC, m.exist DESC, m.cve_alm ASC';
+      return `i.cve_art COLLATE "C" ${direction === 'desc' ? 'DESC' : 'ASC'}, m.exist DESC, m.cve_alm ASC`;
+  
   }
 }
 
