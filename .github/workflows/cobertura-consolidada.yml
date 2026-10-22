@@ -1,0 +1,77 @@
+
+name: COMCESA - Cobertura Consolidada
+
+on:
+  push:
+    branches:
+      - feature/cobertura-consolidada
+  pull_request:
+    branches:
+      -DEV
+  workflow_dispatch:
+
+jobs:
+  cobertura:
+    name: Pruebas y cobertura consolidada
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: comcesa
+          POSTGRES_USER: comcesa
+          POSTGRES_PASSWORD: prueba-postgres-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U comcesa -d comcesa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas y medir cobertura
+        env:
+          NODE_ENV: test
+          SESSION_SECRET: clave-temporal-exclusiva-para-pruebas-de-cobertura
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: '5432'
+          POSTGRES_DB: comcesa
+          POSTGRES_USER: comcesa
+          POSTGRES_PASSWORD: prueba-postgres-ci
+          REDIS_URL: redis://localhost:6379
+        run: |
+          node --test \
+            --experimental-test-coverage \
+            --test-coverage-include='src/backend/config/database.js' \
+            --test-coverage-include='src/backend/config/env.js' \
+            --test-coverage-include='src/backend/config/redis.js' \
+            --test-coverage-include='src/backend/middlewares/auth.js' \
+            --test-coverage-include='src/backend/services/inventoryService.js' \
+            --test-coverage-include='src/backend/services/sessionService.js' \
+            tests/backend/api.test.js \
+            tests/backend/unit/*.test.js \
+            tests/frontend/*.test.js

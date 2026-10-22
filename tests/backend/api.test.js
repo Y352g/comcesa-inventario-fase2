@@ -12,6 +12,7 @@ process.env.REDIS_URL ||= 'redis://localhost:6379';
 const assert = require('node:assert/strict');
 const { after, before, test } = require('node:test');
 const bcrypt = require('bcryptjs');
+const ExcelJS = require('exceljs');
 const { pool } = require('../../src/backend/config/database');
 const { ensureDatabaseSchema } = require('../../src/backend/config/schema');
 const { redis } = require('../../src/backend/config/redis');
@@ -55,13 +56,26 @@ before(async () => {
   `, [testEmail, passwordHash]);
   await pool.query(`
     INSERT INTO inve (cve_art, descr, lin_prod, uni_med)
-    VALUES ('TEST-001', 'Articulo de prueba', 'PRUEBAS', 'PZA'), ('TEST-002', 'Filtro demo', 'FILTRACION', 'PZA')
+    VALUES ('TEST-001', 'Articulo de prueba', 'PRUEBAS', 'PZA'), ('TEST-002', 'Filtro demo', 'FILTRACION', 'PZA'), ('TEST-003', 'Cable de prueba', 'PRUEBAS', 'PZA'), ('TEST-004', 'Articulo en bodegas excluidas', 'PRUEBAS', 'PZA'),
+      ('TEST-R01', 'Rango uno', 'PRUEBAS', 'PZA'), ('TEST-R02', 'Rango dos', 'PRUEBAS', 'PZA'), ('TEST-R03', 'Rango tres', 'PRUEBAS', 'PZA')
     ON CONFLICT (cve_art) DO NOTHING
   `);
   await pool.query(`
     INSERT INTO mult (cve_art, cve_alm, status, ctrl_alm, exist)
-    VALUES ('TEST-001', 91, 'A', 'BODEGA-PRUEBA', 15), ('TEST-002', 92, 'I', 'BODEGA-INACTIVA', 0)
-    ON CONFLICT (cve_art, cve_alm) DO NOTHING
+    VALUES
+      ('TEST-001', 91, 'A', 'BODEGA-PRUEBA', 15),
+      ('TEST-002', 92, 'I', 'BODEGA-INACTIVA', 5),
+      ('TEST-003', 93, 'A', 'BODEGA-93', 100),
+      ('TEST-003', 94, 'A', 'BODEGA-94', 12000),
+      ('TEST-003', 95, 'A', 'BODEGA-95', 0),
+      ('TEST-003', 96, 'A', 'BODEGA-96', 500),
+      ('TEST-004', 8, 'A', 'BODEGA-8', 10),
+      ('TEST-004', 25, 'A', 'BODEGA-25', 10),
+      ('TEST-004', 97, 'A', 'BODEGA-97', 10),
+      ('TEST-R01', 98, 'A', 'BODEGA-98', 1),
+      ('TEST-R02', 98, 'A', 'BODEGA-98', 1),
+      ('TEST-R03', 98, 'A', 'BODEGA-98', 1)
+    ON CONFLICT (cve_art, cve_alm) DO UPDATE SET status = EXCLUDED.status, exist = EXCLUDED.exist
   `);
   server = app.listen(0);
   baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -226,4 +240,105 @@ test('CP-29 sesión cerrada no accede al inventario', async () => {
 test('CP-30 filtros combinados funcionan', async () => {
   const { response, body } = await request('/api/v1/inventory?search=TEST&warehouse=91&status=A');
   assert.equal(response.status, 200); assert.ok(body.items.every((item) => item.warehouse === 91 && item.status === 'A'));
+});
+
+test('CP-31 los registros con existencia en cero no aparecen en el listado', async () => {
+  const { body } = await request('/api/v1/inventory?search=TEST-003');
+  assert.ok(body.items.length > 0);
+  assert.ok(body.items.every((item) => Number(item.stock) > 0));
+  assert.equal(body.items.some((item) => item.warehouse === 95), false);
+});
+
+test('CP-32 las bodegas de un artículo salen de mayor a menor existencia', async () => {
+  const { body } = await request('/api/v1/inventory?search=TEST-003');
+  assert.deepEqual(body.items.map((item) => Number(item.stock)), [12000, 500, 100]);
+});
+
+test('CP-33 las bodegas 8 y 25 no aparecen en el listado', async () => {
+  const { body } = await request('/api/v1/inventory?search=TEST-004');
+  assert.deepEqual(body.items.map((item) => item.warehouse), [97]);
+});
+
+test('CP-34 filtrar directamente por bodega 8 o 25 no devuelve registros', async () => {
+  const bodega8 = await request('/api/v1/inventory?warehouse=8');
+  const bodega25 = await request('/api/v1/inventory?warehouse=25');
+  assert.equal(bodega8.body.items.length, 0);
+  assert.equal(bodega25.body.items.length, 0);
+});
+
+test('CP-35 la busqueda por rango de clave incluye ambos extremos', async () => {
+  const { body } = await request('/api/v1/inventory?articleFrom=TEST-R01&articleTo=TEST-R02');
+  assert.deepEqual(body.items.map((item) => item.article), ['TEST-R01', 'TEST-R02']);
+});
+
+test('CP-36 el rango funciona con minusculas y con los extremos invertidos', async () => {
+  const { body } = await request('/api/v1/inventory?articleFrom=test-r02&articleTo=test-r01');
+  assert.deepEqual(body.items.map((item) => item.article), ['TEST-R01', 'TEST-R02']);
+});
+
+async function downloadExcel(query) {
+  const response = await fetch(`${baseUrl}/api/v1/inventory/export${query}`, { headers: { cookie: sessionCookie } });
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return { response, buffer };
+}
+
+test('CP-37 la descarga de Excel exige autenticación', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/inventory/export`);
+  assert.equal(response.status, 401);
+});
+
+test('CP-38 la descarga de Excel respeta los filtros y devuelve un archivo válido', async () => {
+  const { response, buffer } = await downloadExcel('?search=TEST-003');
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /spreadsheetml\.sheet/);
+  assert.match(response.headers.get('content-disposition'), /attachment; filename="inventario_.*\.xlsx"/);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const sheet = workbook.getWorksheet('Inventario');
+  assert.ok(workbook.getWorksheet('Filtros'));
+  assert.equal(sheet.getCell(1, 1).value, 'Artículo');
+  const dataRows = [];
+  sheet.eachRow((row, number) => { if (number > 1) dataRows.push({ article: row.getCell(1).value, stock: row.getCell(8).value }); });
+  assert.deepEqual(dataRows, [
+    { article: 'TEST-003', stock: 12000 },
+    { article: 'TEST-003', stock: 500 },
+    { article: 'TEST-003', stock: 100 }
+  ]);
+});
+
+test('CP-39 el Excel excluye bodegas ocultas y guarda las claves como texto', async () => {
+  const { buffer } = await downloadExcel('?search=TEST-004');
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const sheet = workbook.getWorksheet('Inventario');
+  assert.equal(sheet.rowCount, 2);
+  assert.equal(sheet.getCell(2, 5).value, 97);
+  assert.equal(typeof sheet.getCell(2, 1).value, 'string');
+});
+
+test('CP-40 la descarga de Excel rechaza filtros inválidos', async () => {
+  const { response } = await downloadExcel('?warehouse=abc');
+  assert.equal(response.status, 400);
+});
+
+test('CP-41 la app se puede instalar en el celular: manifiesto, iconos y service worker', async () => {
+  const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
+  assert.equal(manifestResponse.status, 200);
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.start_url, '/inventario');
+  assert.ok(manifest.icons.some((icon) => icon.sizes === '192x192'));
+  assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512'));
+  assert.ok(manifest.icons.some((icon) => icon.purpose === 'maskable'));
+  for (const icon of manifest.icons) {
+    const iconResponse = await fetch(`${baseUrl}${icon.src}`);
+    assert.equal(iconResponse.status, 200);
+    assert.match(iconResponse.headers.get('content-type'), /image\/png/);
+  }
+  const worker = await fetch(`${baseUrl}/sw.js`);
+  assert.equal(worker.status, 200);
+  assert.match(worker.headers.get('content-type'), /javascript/);
+  const loginPage = await (await fetch(`${baseUrl}/login`)).text();
+  assert.match(loginPage, /rel="manifest"/);
+  assert.match(loginPage, /apple-touch-icon/);
 });
