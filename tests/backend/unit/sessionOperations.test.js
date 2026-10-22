@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
+const path = require('node:path');
 
 const originalLoad = Module._load;
 
@@ -47,10 +48,12 @@ try {
   Module._load = function(request, parent, isMain) {
     if (
       request === '../config/redis' &&
-      parent?.filename.endsWith('/services/sessionService.js')
-    ) {
-      return { redis: redisMock };
-    }
+      path.normalize(parent?.filename || '').endsWith(
+      path.join('services', 'sessionService.js')
+    )
+) {
+  return { redis: redisMock };
+}
 
     return originalLoad.apply(this, arguments);
   };

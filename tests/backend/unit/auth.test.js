@@ -1,9 +1,14 @@
 
-const test = require('node:test');
+const { test, mock } = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
+const path = require('node:path');
 
-const originalLoad = Module._load;
+process.env.SESSION_SECRET ||= 'clave-ficticia-exclusiva-para-pruebas-unitarias-2026';
+process.env.POSTGRES_PASSWORD ||= 'password-ficticio-para-pruebas';
+
+const { pool } = require('../../../src/backend/config/database');
+
 let sessionResult = null;
 let sessionError = null;
 let receivedToken = null;
@@ -17,14 +22,20 @@ const sessionMock = {
   }
 };
 
+const originalLoad = Module._load;
 let requireAuth;
 
 try {
   Module._load = function (request, parent, isMain) {
-    if (request === '../services/sessionService' &&
-        parent?.filename.endsWith('/middlewares/auth.js')) {
+    if (
+      request === '../services/sessionService' &&
+      path.normalize(parent?.filename || '').endsWith(
+        path.join('middlewares', 'auth.js')
+      )
+    ) {
       return sessionMock;
     }
+
     return originalLoad.apply(this, arguments);
   };
 
@@ -48,10 +59,26 @@ function createResponse() {
   };
 }
 
+function mockUser(user) {
+  mock.method(pool, 'query', async () => ({
+    rows: user ? [{
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      active: true,
+      must_change_password: false
+    }] : []
+  }));
+}
+
 test.beforeEach(() => {
   sessionResult = null;
   sessionError = null;
   receivedToken = null;
+});
+
+test.afterEach(() => {
+  mock.restoreAll();
 });
 
 test('PA-01: rechaza solicitudes sin sesión válida', async () => {
@@ -81,11 +108,12 @@ test('PA-02: rechaza sesiones inexistentes', async () => {
 });
 
 test('PA-03: permite acceso con sesión válida', async () => {
-  sessionResult = {
+  sessionResult = { id: 1 };
+  mockUser({
     id: 1,
     email: 'usuario@ejemplo.com',
     role: 'admin'
-  };
+  });
 
   const request = {
     headers: { cookie: 'comcesa_session=token-valido' }
@@ -102,11 +130,15 @@ test('PA-03: permite acceso con sesión válida', async () => {
 });
 
 test('PA-04: asigna correctamente los datos del usuario', async () => {
-  sessionResult = {
+  sessionResult = { id: 5 };
+
+  const user = {
     id: 5,
     email: 'vendedor@ejemplo.com',
     role: 'sales'
   };
+
+  mockUser(user);
 
   const request = {
     headers: { cookie: 'comcesa_session=token-123' }
@@ -114,11 +146,20 @@ test('PA-04: asigna correctamente los datos del usuario', async () => {
 
   await requireAuth(request, createResponse(), () => {});
 
-  assert.deepEqual(request.user, sessionResult);
+  assert.deepEqual(request.user, {
+    ...user,
+    mustChangePassword: false
+  });
 });
 
 test('PA-05: obtiene el token de la cookie correcta', async () => {
-  sessionResult = { id: 2, role: 'admin' };
+  sessionResult = { id: 2 };
+
+  mockUser({
+    id: 2,
+    email: 'admin@ejemplo.com',
+    role: 'admin'
+  });
 
   const request = {
     headers: {

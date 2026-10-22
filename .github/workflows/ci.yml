@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - DEV
+      - QA
+      - PROD
       - 'feature/**'
 
   pull_request:
@@ -14,9 +16,44 @@ on:
       - PROD
 
 jobs:
-  build:
-    name: Build y validacion
+  build-and-test:
+    name: Validacion, pruebas y cobertura
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: comcesa
+          POSTGRES_USER: comcesa
+          POSTGRES_PASSWORD: test-postgres-password-1234
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U comcesa -d comcesa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      SESSION_SECRET: ci-session-secret-000000000000000000
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: comcesa
+      POSTGRES_USER: comcesa
+      POSTGRES_PASSWORD: test-postgres-password-1234
+      REDIS_URL: redis://localhost:6379
 
     steps:
       - name: Obtener codigo
@@ -36,12 +73,15 @@ jobs:
           find src scripts tests -type f -name "*.js" -exec node --check {} \;
 
       - name: Ejecutar pruebas unitarias y medir cobertura
-        env:
-          SESSION_SECRET: "clave-ficticia-exclusiva-para-pruebas-unitarias-2026"
-          POSTGRES_PASSWORD: "password-ficticio-para-pruebas"
         run: |
           node --test \
             --experimental-test-coverage \
             --test-coverage-include='src/**/*.js' \
             tests/backend/unit/*.test.js \
             tests/frontend/*.test.js
+
+      - name: Ejecutar pruebas de integracion
+        run: npm run test:integration
+
+      - name: Construir imagen Docker
+        run: docker build -f docker/backend/Dockerfile -t comcesa-inventario:${{ github.sha }} .
