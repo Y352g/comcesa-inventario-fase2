@@ -4,6 +4,7 @@ name: COMCESA Fase 2 - CI
 on:
   push:
     branches:
+      - main
       - DEV
       - QA
       - PROD
@@ -11,6 +12,7 @@ on:
 
   pull_request:
     branches:
+      - main
       - DEV
       - QA
       - PROD
