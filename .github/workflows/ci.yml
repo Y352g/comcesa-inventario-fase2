@@ -58,6 +58,8 @@ jobs:
     steps:
       - name: Obtener codigo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -74,14 +76,26 @@ jobs:
 
       - name: Ejecutar pruebas unitarias y medir cobertura
         run: |
-          node --test \
-            --experimental-test-coverage \
-            --test-coverage-include='src/**/*.js' \
+          npx --yes c8 --reporter=text --reporter=lcov \
+            --include='src/**/*.js' \
+            node --test \
             tests/backend/unit/*.test.js \
             tests/frontend/*.test.js
+          test -s coverage/lcov.info
 
       - name: Ejecutar pruebas de integracion
         run: npm run test:integration
+
+      - name: Analizar codigo con SonarQube Cloud
+        if: ${{ github.event_name == 'push' }}
+        uses: SonarSource/sonarqube-scan-action@v8.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=y352g
+            -Dsonar.projectKey=Y352g_comcesa-inventario-fase2
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
 
       - name: Construir imagen Docker
         run: docker build -f docker/backend/Dockerfile -t comcesa-inventario:${{ github.sha }} .
